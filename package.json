@@ -1,0 +1,9 @@
+{
+  "name": "tube-fetch",
+  "version": "1.0.0",
+  "description": "YouTube 视频获取浏览器插件",
+  "private": true,
+  "scripts": {
+    "icons": "node scripts/generate-icons.js"
+  }
+}

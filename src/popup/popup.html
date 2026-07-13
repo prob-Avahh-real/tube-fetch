@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TubeFetch</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="header">
+    <div class="logo">▶</div>
+    <div>
+      <h1>TubeFetch</h1>
+      <p class="subtitle">YouTube 视频获取</p>
+    </div>
+  </header>
+
+  <section id="state-empty" class="state" hidden>
+    <p>请打开 YouTube 视频页面后使用本插件。</p>
+    <a href="https://www.youtube.com" target="_blank" rel="noreferrer">前往 YouTube</a>
+  </section>
+
+  <section id="state-loading" class="state">
+    <div class="spinner"></div>
+    <p>正在读取视频信息…</p>
+  </section>
+
+  <section id="state-error" class="state" hidden>
+    <p id="error-text"></p>
+    <button id="retry-btn" type="button">重试</button>
+  </section>
+
+  <section id="state-ready" hidden>
+    <div class="video-card">
+      <img id="thumb" alt="" />
+      <div>
+        <h2 id="title"></h2>
+        <p id="meta"></p>
+      </div>
+    </div>
+
+    <div class="section-title">选择格式</div>
+    <div id="options" class="options"></div>
+
+    <div class="section-title">最近下载</div>
+    <ul id="history" class="history"></ul>
+  </section>
+
+  <footer class="footer">仅供个人学习使用 · 请遵守 YouTube 服务条款与版权法规</footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
