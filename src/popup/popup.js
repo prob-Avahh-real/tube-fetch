@@ -11,6 +11,26 @@ function formatDuration(seconds) {
   return `${m}:${String(r).padStart(2, '0')}`;
 }
 
+function optionLabel(item) {
+  if (item.kind === 'merge') {
+    return {
+      label: '最佳画质 · 合并为一个文件',
+      meta: `${item.qualityLabel} · ffmpeg.wasm`,
+    };
+  }
+  if (item.kind === 'combo') {
+    return {
+      label: '最佳画质 · 分开下载',
+      meta: `${item.qualityLabel} · 两个文件`,
+    };
+  }
+  const typeLabel = item.kind === 'audio' ? '仅音频' : item.kind === 'video' ? '仅视频' : '音视频';
+  return {
+    label: `${item.qualityLabel || typeLabel} · ${item.ext.toUpperCase()}`,
+    meta: `${typeLabel}${item.sizeLabel ? ` · ${item.sizeLabel}` : ''}`,
+  };
+}
+
 function renderOptions(info) {
   const container = document.getElementById('options');
   container.innerHTML = '';
@@ -20,30 +40,35 @@ function renderOptions(info) {
     btn.type = 'button';
     btn.className = 'option-btn';
     btn.dataset.optionId = item.id;
-
-    if (item.kind === 'combo') {
-      btn.innerHTML = `
-        <span class="option-label">最佳画质（视频 + 音频，两个文件）</span>
-        <span class="option-meta">${item.qualityLabel}</span>
-      `;
-    } else {
-      const typeLabel = item.kind === 'audio' ? '仅音频' : item.kind === 'video' ? '仅视频' : '音视频';
-      btn.innerHTML = `
-        <span class="option-label">${item.qualityLabel || typeLabel} · ${item.ext.toUpperCase()}</span>
-        <span class="option-meta">${typeLabel}${item.sizeLabel ? ` · ${item.sizeLabel}` : ''}</span>
-      `;
-    }
+    const { label, meta } = optionLabel(item);
+    btn.innerHTML = `
+      <span class="option-label">${label}</span>
+      <span class="option-meta">${meta}</span>
+    `;
 
     btn.addEventListener('click', async () => {
       btn.disabled = true;
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        type: 'DOWNLOAD_OPTION',
-        optionId: item.id,
-      });
-      btn.disabled = false;
-      if (!response?.ok) {
-        alert(response?.error || '下载失败');
+      const progress = document.getElementById('merge-progress');
+      if (item.kind === 'merge') {
+        progress.hidden = false;
+        progress.textContent = '正在合并，请稍候…';
+      }
+
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const response = await chrome.tabs.sendMessage(tab.id, {
+          type: 'DOWNLOAD_OPTION',
+          optionId: item.id,
+        });
+        if (!response?.ok) {
+          alert(response?.error || '下载失败');
+        } else if (item.kind === 'merge') {
+          progress.textContent = '已开始合并下载';
+        }
+      } catch (err) {
+        alert(err.message || '下载失败');
+      } finally {
+        btn.disabled = false;
       }
     });
 
@@ -70,7 +95,7 @@ async function loadHistory() {
 
   downloadHistory.slice(0, 5).forEach((item) => {
     const li = document.createElement('li');
-    li.textContent = item.filename;
+    li.textContent = item.merged ? `${item.filename}（已合并）` : item.filename;
     list.appendChild(li);
   });
 }
@@ -103,6 +128,15 @@ async function loadVideoInfo() {
     show('state-error');
   }
 }
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes.mergeProgress) return;
+  const p = changes.mergeProgress.newValue;
+  const el = document.getElementById('merge-progress');
+  if (!el || !p) return;
+  el.hidden = false;
+  el.textContent = p.text || '';
+});
 
 document.getElementById('retry-btn').addEventListener('click', loadVideoInfo);
 

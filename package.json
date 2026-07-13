@@ -1,9 +1,19 @@
 {
   "name": "tube-fetch",
-  "version": "1.0.0",
-  "description": "YouTube 视频获取浏览器插件",
+  "version": "1.1.0",
+  "description": "YouTube 视频获取浏览器插件（Chrome / Firefox）",
   "private": true,
   "scripts": {
-    "icons": "node scripts/generate-icons.js"
+    "icons": "node scripts/generate-icons.js",
+    "vendor": "node scripts/vendor-ffmpeg.js",
+    "postinstall": "node scripts/vendor-ffmpeg.js",
+    "build:chrome": "node scripts/package.js chrome",
+    "build:firefox": "node scripts/package.js firefox",
+    "build": "node scripts/package.js all"
+  },
+  "dependencies": {
+    "@ffmpeg/core": "0.12.6",
+    "@ffmpeg/ffmpeg": "0.12.10",
+    "@ffmpeg/util": "0.12.1"
   }
 }

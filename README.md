@@ -1,83 +1,88 @@
 # TubeFetch
 
-从 YouTube 页面解析并下载视频的浏览器插件（Chrome / Edge Manifest V3）。
+从 YouTube 页面解析并下载视频的浏览器插件（Chrome / Edge / Firefox，Manifest V3）。
 
 ## 功能
 
-- 在 YouTube 观看页 / Shorts 页面浮动「下载」按钮
-- 插件弹窗列出可用清晰度（含音视频合并流、分离流）
-- 支持「最佳画质」组合下载（视频 + 音频两个文件）
+- YouTube 观看页 / Shorts 浮动「下载」按钮
+- 弹窗列出可用清晰度（合并流 / 分离流）
+- **ffmpeg.wasm 浏览器内合并**：高画质一键导出单个 MP4
+- 也可选择「分开下载」两个文件
 - 下载历史记录
-- 自动监听 YouTube 播放器 API 响应，提高 URL 解析成功率
+- Chrome 使用 Offscreen Document；Firefox 使用后台合并页
 
 ## 安装（开发者模式）
 
-1. 打开 `chrome://extensions/` 或 `edge://extensions/`
+### Chrome / Edge
+
+1. `chrome://extensions/` 或 `edge://extensions/`
 2. 开启 **开发者模式**
-3. 点击 **加载已解压的扩展程序**
-4. 选择本项目根目录 `tube-fetch/`
+3. **加载已解压的扩展程序** → 选择本仓库根目录
+
+### Firefox
+
+1. `npm run build:firefox`
+2. `about:debugging#/runtime/this-firefox`
+3. **临时载入附加组件** → 选择 `dist/firefox/manifest.json`
+
+或将 `manifest.firefox.json` 临时复制为 `manifest.json` 后加载源码目录。
 
 ## 使用
 
-1. 打开任意 YouTube 视频页面
-2. 点击右下角红色 **下载** 按钮，或点击浏览器工具栏中的 TubeFetch 图标
-3. 选择目标格式后开始下载
-4. 文件默认保存到下载目录下的 `TubeFetch/` 文件夹
+1. 打开任意 YouTube 视频
+2. 点击右下角 **下载**，或工具栏 TubeFetch 图标
+3. 推荐选择 **最佳画质 · 合并为一个文件**
+4. 文件保存到下载目录 `TubeFetch/`
 
-### 关于高画质下载
-
-YouTube 高画质通常分为 **视频流** 和 **音频流**：
-
-| 选项 | 说明 |
-|------|------|
-| 720p/360p 等「音视频」 | 单文件，可直接播放 |
-| 1080p+「仅视频」+「仅音频」 | 两个文件，需用 ffmpeg 合并 |
-
-合并示例：
+## 打包上架
 
 ```bash
-ffmpeg -i "标题 [1080p].mp4" -i "标题 [audio].m4a" -c copy "标题-完整.mp4"
+npm install
+npm run build
 ```
+
+详见 [docs/STORE.md](docs/STORE.md)。
 
 ## 项目结构
 
 ```
 tube-fetch/
-├── manifest.json          # 扩展清单 (MV3)
-├── icons/                 # 扩展图标
+├── manifest.json              # Chrome / Edge
+├── manifest.firefox.json      # Firefox
+├── vendor/ffmpeg/             # ffmpeg.wasm（npm run vendor）
 ├── src/
-│   ├── background.js      # 下载调度
-│   ├── content.js         # 页面注入与 UI
-│   ├── content.css
-│   ├── lib/
-│   │   ├── parser.js      # 解析 ytInitialPlayerResponse
-│   │   └── utils.js
-│   └── popup/             # 弹窗界面
-└── README.md
+│   ├── background.js          # 下载 / 合并调度
+│   ├── content.js             # 页面 UI
+│   ├── merge/                 # ffmpeg 合并宿主页
+│   ├── lib/                   # parser / utils / browser shim
+│   └── popup/
+├── scripts/
+│   ├── package.js             # 打 zip
+│   └── vendor-ffmpeg.js
+└── docs/STORE.md
 ```
 
 ## 技术说明
 
-- 从页面内 `ytInitialPlayerResponse` 及 `/youtubei/v1/player` 响应提取 `streamingData`
-- 优先使用带 `url` 的格式；部分加密格式尝试解析 `signatureCipher`
-- 使用 `chrome.downloads` API 触发浏览器下载
+- 解析 `ytInitialPlayerResponse` 与 `/youtubei/v1/player`
+- 高画质 DASH：拉视频流 + 音频流 → ffmpeg.wasm `-c copy` 合并
+- `chrome.downloads` 保存结果
 
 ## 限制与合规
 
-- 受 YouTube 加密、会员、地区版权限制的视频可能无法获取
-- **仅供个人学习与研究**，请遵守 YouTube 服务条款与当地版权法规
-- 请勿用于批量爬取或商业用途
-
-## 开发
-
-重新生成图标（可选）：
-
-```bash
-npm run icons   # 需要 sharp；或使用 scripts/generate-icons.js
-```
+- 受加密、会员、地区版权限制的视频可能无法获取
+- **仅供个人学习与研究**，请遵守 YouTube 服务条款与版权法规
+- Chrome Web Store 对此类扩展审核严格，见上架文档说明
 
 ## 更新日志
 
+### v1.1.0
+
+- Firefox MV3 适配（`manifest.firefox.json`）
+- ffmpeg.wasm 浏览器内合并为一个 MP4
+- `npm run build` 打包 Chrome / Firefox zip
+- 上架文档 `docs/STORE.md`
+
 ### v1.0.0
 
-- 初始版本：YouTube 视频解析、多格式下载、浮动面板与弹窗 UI
+- 初始版本：解析、多格式下载、浮动面板与弹窗

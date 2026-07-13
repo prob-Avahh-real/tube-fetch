@@ -145,12 +145,24 @@ const TubeFetchParser = (() => {
     const bestAudio = adaptive.audio[0];
     if (!bestVideo || !bestAudio) return null;
 
+    const streams = [bestVideo, bestAudio];
+    const qualityLabel = `${bestVideo.qualityLabel} + 音频`;
+
     return {
-      id: `combo-${bestVideo.itag}-${bestAudio.itag}`,
-      kind: 'combo',
-      qualityLabel: `${bestVideo.qualityLabel} + 音频`,
-      qualityScore: bestVideo.qualityScore,
-      streams: [bestVideo, bestAudio],
+      merge: {
+        id: `merge-${bestVideo.itag}-${bestAudio.itag}`,
+        kind: 'merge',
+        qualityLabel,
+        qualityScore: bestVideo.qualityScore,
+        streams,
+      },
+      split: {
+        id: `combo-${bestVideo.itag}-${bestAudio.itag}`,
+        kind: 'combo',
+        qualityLabel,
+        qualityScore: bestVideo.qualityScore,
+        streams,
+      },
     };
   }
 
@@ -174,7 +186,8 @@ const TubeFetchParser = (() => {
     const combo = buildBestCombo(adaptive);
 
     const downloads = [...progressive];
-    if (combo) downloads.unshift(combo);
+    if (combo?.merge) downloads.unshift(combo.merge);
+    if (combo?.split) downloads.splice(1, 0, combo.split);
     adaptive.video.forEach((v) => downloads.push(v));
     adaptive.audio.forEach((a) => downloads.push(a));
 

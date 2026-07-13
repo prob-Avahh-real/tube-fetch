@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>TubeFetch Merge</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: system-ui, sans-serif;
+      background: #0f0f0f;
+      color: #f1f1f1;
+      font-size: 13px;
+    }
+    #status { margin-bottom: 8px; }
+    #bar {
+      height: 6px;
+      background: #303030;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    #fill {
+      height: 100%;
+      width: 0%;
+      background: #ff0033;
+      transition: width 0.15s ease;
+    }
+  </style>
+</head>
+<body>
+  <div id="status">等待合并任务…</div>
+  <div id="bar"><div id="fill"></div></div>
+  <script src="../lib/browser.js"></script>
+  <script src="../../vendor/ffmpeg/util.js"></script>
+  <script src="../../vendor/ffmpeg/ffmpeg.js"></script>
+  <script src="merge.js"></script>
+</body>
+</html>

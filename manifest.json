@@ -2,13 +2,15 @@
   "manifest_version": 3,
   "name": "TubeFetch — YouTube 视频获取",
   "short_name": "TubeFetch",
-  "version": "1.0.0",
-  "description": "在 YouTube 页面解析并下载视频、音频，支持多清晰度选择",
+  "version": "1.1.0",
+  "description": "在 YouTube 页面解析并下载视频、音频，支持多清晰度与 ffmpeg.wasm 合并",
   "permissions": [
     "activeTab",
     "downloads",
     "storage",
-    "scripting"
+    "scripting",
+    "tabs",
+    "offscreen"
   ],
   "host_permissions": [
     "https://www.youtube.com/*",
@@ -25,6 +27,7 @@
         "https://m.youtube.com/*"
       ],
       "js": [
+        "src/lib/browser.js",
         "src/lib/utils.js",
         "src/lib/parser.js",
         "src/content.js"
@@ -46,5 +49,20 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self' blob:;"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "vendor/ffmpeg/*",
+        "src/merge/*"
+      ],
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://m.youtube.com/*"
+      ]
+    }
+  ]
 }

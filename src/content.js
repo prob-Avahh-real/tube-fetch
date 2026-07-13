@@ -31,6 +31,10 @@
             <div class="tf-meta"></div>
           </div>
         </div>
+        <div class="tf-progress" hidden>
+          <div class="tf-progress-text"></div>
+          <div class="tf-progress-bar"><div class="tf-progress-fill"></div></div>
+        </div>
         <div class="tf-options"></div>
         <div class="tf-footer">仅供个人学习使用，请遵守版权法规</div>
       </div>
@@ -54,6 +58,38 @@
     return panelRoot;
   }
 
+  function setProgress(active, text, progress) {
+    if (!panelRoot) return;
+    const box = panelRoot.querySelector('.tf-progress');
+    const textEl = panelRoot.querySelector('.tf-progress-text');
+    const fill = panelRoot.querySelector('.tf-progress-fill');
+    box.hidden = !active && !text;
+    textEl.textContent = text || '';
+    if (typeof progress === 'number') {
+      fill.style.width = `${Math.round(progress * 100)}%`;
+    }
+  }
+
+  function optionLabel(item) {
+    if (item.kind === 'merge') {
+      return {
+        label: '最佳画质 · 合并为一个文件',
+        meta: `${item.qualityLabel} · ffmpeg.wasm`,
+      };
+    }
+    if (item.kind === 'combo') {
+      return {
+        label: '最佳画质 · 分开下载',
+        meta: `${item.qualityLabel} · 两个文件`,
+      };
+    }
+    const typeLabel = item.kind === 'audio' ? '仅音频' : item.kind === 'video' ? '仅视频' : '音视频';
+    return {
+      label: `${item.qualityLabel || typeLabel} · ${item.ext.toUpperCase()}`,
+      meta: `${typeLabel}${item.sizeLabel ? ` · ${item.sizeLabel}` : ''}`,
+    };
+  }
+
   function renderOptions(container, info) {
     container.innerHTML = '';
 
@@ -66,19 +102,17 @@
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'tf-option';
+      const { label, meta } = optionLabel(item);
+      btn.innerHTML = `
+        <span class="tf-option-label">${label}</span>
+        <span class="tf-option-meta">${meta}</span>
+      `;
 
-      if (item.kind === 'combo') {
-        btn.innerHTML = `
-          <span class="tf-option-label">最佳画质（视频+音频）</span>
-          <span class="tf-option-meta">${item.qualityLabel}</span>
-        `;
+      if (item.kind === 'merge') {
+        btn.addEventListener('click', () => downloadMerge(info, item, btn));
+      } else if (item.kind === 'combo') {
         btn.addEventListener('click', () => downloadCombo(info, item));
       } else {
-        const typeLabel = item.kind === 'audio' ? '仅音频' : item.kind === 'video' ? '仅视频' : '音视频';
-        btn.innerHTML = `
-          <span class="tf-option-label">${item.qualityLabel || typeLabel} · ${item.ext.toUpperCase()}</span>
-          <span class="tf-option-meta">${typeLabel}${item.sizeLabel ? ` · ${item.sizeLabel}` : ''}</span>
-        `;
         btn.addEventListener('click', () => downloadSingle(info, item));
       }
 
@@ -115,7 +149,7 @@
 
   async function downloadSingle(info, item) {
     const base = sanitizeFilename(info.title);
-    const suffix = item.kind === 'audio' ? ' [audio]' : item.kind === 'video' ? ` [${item.qualityLabel}]` : ` [${item.qualityLabel}]`;
+    const suffix = item.kind === 'audio' ? ' [audio]' : ` [${item.qualityLabel || item.kind}]`;
     const filename = `${base}${suffix}.${item.ext}`;
 
     await sendMessage('DOWNLOAD', {
@@ -135,6 +169,38 @@
         filename,
         videoId: info.videoId,
       });
+    }
+  }
+
+  async function downloadMerge(info, mergeItem, btn) {
+    const video = mergeItem.streams.find((s) => s.kind === 'video');
+    const audio = mergeItem.streams.find((s) => s.kind === 'audio');
+    if (!video || !audio) return;
+
+    const filename = `${sanitizeFilename(info.title)} [${video.qualityLabel}].mp4`;
+    if (btn) btn.disabled = true;
+    setProgress(true, '准备合并…', 0.02);
+
+    try {
+      const result = await sendMessage('MERGE_AND_DOWNLOAD', {
+        videoUrl: video.url,
+        audioUrl: audio.url,
+        videoExt: video.ext,
+        audioExt: audio.ext,
+        filename,
+        videoId: info.videoId,
+      });
+
+      if (!result?.ok) {
+        setProgress(true, result?.error || '合并失败', 0);
+        return;
+      }
+      setProgress(true, '合并完成', 1);
+      setTimeout(() => setProgress(false, '', 0), 2500);
+    } catch (err) {
+      setProgress(true, err.message || '合并失败', 0);
+    } finally {
+      if (btn) btn.disabled = false;
     }
   }
 
@@ -168,15 +234,31 @@
         return true;
       }
 
-      if (option.kind === 'combo') {
-        downloadCombo(latestInfo, option).then(() => sendResponse({ ok: true }));
-      } else {
-        downloadSingle(latestInfo, option).then(() => sendResponse({ ok: true }));
-      }
+      const run = async () => {
+        if (option.kind === 'merge') {
+          await downloadMerge(latestInfo, option);
+        } else if (option.kind === 'combo') {
+          await downloadCombo(latestInfo, option);
+        } else {
+          await downloadSingle(latestInfo, option);
+        }
+        return { ok: true };
+      };
+
+      run()
+        .then((result) => sendResponse(result))
+        .catch((err) => sendResponse({ ok: false, error: err.message }));
       return true;
     }
 
     return false;
+  });
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !changes.mergeProgress) return;
+    const p = changes.mergeProgress.newValue;
+    if (!p) return;
+    setProgress(Boolean(p.active || p.done || p.error), p.text, p.progress);
   });
 
   TubeFetchParser.installFetchHook();
@@ -198,14 +280,10 @@
     const currentId = getVideoId(location.href);
     if (currentId !== lastVideoId) {
       lastVideoId = currentId;
-      cachedResponseClear();
+      latestInfo = null;
       updateVisibility();
     }
   });
-
-  function cachedResponseClear() {
-    latestInfo = null;
-  }
 
   observer.observe(document.documentElement, { subtree: true, childList: true });
 })();

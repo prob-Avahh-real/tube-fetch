@@ -141,6 +141,15 @@ h1 {
   color: #aaa;
 }
 
+.merge-progress {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #1a1a1a;
+  color: #ffb3c1;
+  font-size: 12px;
+}
+
 .history {
   list-style: none;
   max-height: 96px;
