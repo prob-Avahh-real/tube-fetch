@@ -23,7 +23,7 @@ npm run build:firefox
    - 名称：TubeFetch
    - 简述：从 YouTube 页面获取视频与音频
    - 类别：生产力工具
-   - 隐私政策 URL（必填）：说明仅在 youtube.com 读取播放器数据、使用 downloads 权限保存文件、不上传用户数据
+   - 隐私政策 URL（必填）：可托管仓库内 `docs/privacy.html`（GitHub Pages / 任意静态页），说明仅在 youtube.com 读取播放器数据、使用 downloads 权限保存文件、不上传用户数据
 4. 权限说明（审核常见问题）：
    - `downloads`：保存所选视频文件
    - `storage`：本地下载历史

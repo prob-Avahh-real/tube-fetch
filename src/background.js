@@ -119,6 +119,8 @@ function downloadFile({ url, filename, videoId }) {
 
 function sendMergeJob(payload) {
   return new Promise((resolve, reject) => {
+    // Extension pages (offscreen / merge.html tab) listen via runtime.onMessage.
+    // Do not use tabs.sendMessage — that only targets content scripts.
     chrome.runtime.sendMessage({ type: 'RUN_MERGE', ...payload }, (response) => {
       if (chrome.runtime.lastError) {
         reject(new Error(chrome.runtime.lastError.message));

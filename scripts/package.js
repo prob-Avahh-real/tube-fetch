@@ -18,6 +18,7 @@ const INCLUDE = [
   'icons',
   'src',
   'vendor',
+  'docs',
   'README.md',
   'AGENTS.md',
 ];

@@ -113,7 +113,8 @@
       await ff.deleteFile(audioName);
       await ff.deleteFile(outputName);
 
-      const blob = new Blob([data.buffer], { type: 'video/mp4' });
+      const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+      const blob = new Blob([bytes], { type: 'video/mp4' });
       const blobUrl = URL.createObjectURL(blob);
 
       setStatus('保存文件…', 0.98);

@@ -9,7 +9,8 @@
     "postinstall": "node scripts/vendor-ffmpeg.js",
     "build:chrome": "node scripts/package.js chrome",
     "build:firefox": "node scripts/package.js firefox",
-    "build": "node scripts/package.js all"
+    "build": "node scripts/package.js all",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@ffmpeg/core": "0.12.6",
